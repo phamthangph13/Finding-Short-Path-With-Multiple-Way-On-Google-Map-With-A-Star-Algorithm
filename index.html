@@ -348,7 +348,7 @@
 
     adj[intersections[22].toString()].push(intersections[9]); // 23->10;
 
-    // Display intersection points as red dots on the map with hover functionality to show coordinates
+    // Hiển thị các điểm giao nhau dưới dạng các chấm tím trên bản đồ với chức năng hiển thị tọa độ khi di chuột qua
     intersections.forEach(function(intersection, index) {
       var marker = new google.maps.Marker({
         position: intersection,
@@ -356,7 +356,7 @@
         icon: 'http://maps.google.com/mapfiles/ms/icons/purple-dot.png'
       });
       var infowindow = new google.maps.InfoWindow({
-        content: 'Intersection ' + (index + 1) + ':<br>Latitude: ' + intersection.lat().toFixed(6) + '<br>Longitude: ' + intersection.lng().toFixed(6)
+        content: 'Giao lộ ' + (index + 1) + ':<br>Vĩ độ: ' + intersection.lat().toFixed(6) + '<br>Kinh độ: ' + intersection.lng().toFixed(6)
       });
       marker.addListener('mouseover', function() {
         infowindow.open(map, marker);
@@ -366,30 +366,33 @@
       });
     });
 
+    // Hàm chuyển đổi độ sang radian
     function toRadians(degrees) {
-  return degrees * Math.PI / 180;
-}
+      return degrees * Math.PI / 180;
+    }
 
-function approximateDistance(latlng1, latlng2) {
-  var R = 6371000; 
-  var deltaLat = toRadians(latlng2.lat() - latlng1.lat());
-  var deltaLng = toRadians(latlng2.lng() - latlng1.lng());
-  var lat1 = toRadians(latlng1.lat());
-  var lat2 = toRadians(latlng2.lat());
+    // Hàm tính khoảng cách gần đúng giữa 2 điểm trên bản đồ sử dụng công thức haversine
+    function approximateDistance(latlng1, latlng2) {
+      var R = 6371000; // Bán kính trái đất tính bằng mét
+      var deltaLat = toRadians(latlng2.lat() - latlng1.lat());
+      var deltaLng = toRadians(latlng2.lng() - latlng1.lng());
+      var lat1 = toRadians(latlng1.lat());
+      var lat2 = toRadians(latlng2.lat());
 
-  var a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-          Math.cos(lat1) * Math.cos(lat2) *
-          Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
-  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      var a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+              Math.cos(lat1) * Math.cos(lat2) *
+              Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  return R * c; 
-}
+      return R * c; // Trả về khoảng cách tính bằng mét
+    }
 
-
+    // Hàm kiểm tra 2 điểm có cùng tọa độ không
     function isLatLngEqual(a, b) {
         return a.lat === b.lat && a.lng === b.lng;
     }
 
+    // Hàm kiểm tra điểm mid có nằm trên đoạn thẳng ab không
     function isOnSegment(mid, a, b){
         console.log(mid.toString(), a.toString(), b.toString(), approximateDistance(mid,a) + approximateDistance(mid,b), approximateDistance(a,b))
         if(approximateDistance(mid,a) + approximateDistance(mid,b) - approximateDistance(a,b) < 2)
@@ -398,18 +401,23 @@ function approximateDistance(latlng1, latlng2) {
         }
         return 0;
     }
+
+    // Hàm tìm giao lộ gần nhất với một điểm cho trước
     function nearestIntersection(a)
     {
         let min_len = Infinity;
         let nearestNode = null;
+        // Duyệt qua tất cả các cạnh trong đồ thị
         for (let i = 0; i < intersections.length; i++)
         {
             let u = intersections[i];
             for (let j = 0; j < adj[u.toString()].length; j++)
             {
                 let v = adj[u.toString()][j];
+                // Nếu điểm a nằm trên cạnh uv
                 if(isOnSegment(a,u,v))
                 {
+                    // Cập nhật điểm gần nhất
                     if(approximateDistance(u,a) < min_len)
                     {
                         min_len = approximateDistance(u,a);
@@ -423,6 +431,7 @@ function approximateDistance(latlng1, latlng2) {
                 }
             } 
         }
+        // Nếu không tìm thấy điểm nào trên cạnh, tìm giao lộ gần nhất
         if(nearestNode == null)
         {
             min_len = Infinity;
@@ -439,9 +448,13 @@ function approximateDistance(latlng1, latlng2) {
         console.log("Gần nhất",a.toString(),nearestNode.toString());
         return nearestNode;
     }
-    var totalDistance = 0;
-    var totalTime = 0; // Đã thêm để tính tổng thời gian
-    var averageWalkingSpeed = 4.51; // Tốc độ đi bộ trung bình tính bằng km/h
+
+    // Khởi tạo các biến toàn cục
+    var totalDistance = 0; // Tổng khoảng cách
+    var totalTime = 0; // Tổng thời gian
+    var averageWalkingSpeed = 4.51; // Tốc độ đi bộ trung bình (km/h)
+    
+    // Tạo đường đi trên bản đồ
     var path = new google.maps.Polyline({
                 path: [],
                 geodesic: true,
@@ -450,40 +463,53 @@ function approximateDistance(latlng1, latlng2) {
                 strokeWeight: 4,
                 map:map
             });
+
+    // Xử lý sự kiện click trên khu vực Hàng Bồ
     hangBoArea.addListener('click', function(hangBoAreaMouseEvent) {
     var clickedLocation = hangBoAreaMouseEvent.latLng;
     if (google.maps.geometry.poly.containsLocation(clickedLocation, hangBoArea)) 
     {
         flag = 1 - flag;
-        if (flag == 1) 
+        if (flag == 1) // Click lần đầu - đặt điểm bắt đầu
         {
             path.setPath([]);
             markerEnd.setPosition(null);
             markerStart.setPosition(clickedLocation);
         }
-        else
+        else // Click lần hai - đặt điểm kết thúc và tìm đường đi
         {
             markerEnd.setPosition(clickedLocation);
+            // Khởi tạo các biến cho thuật toán A*
             let openNodes = new Set();
             let closeNodes = new Set();
             let d = {};
             let trace = {};
+            
+            // Tìm giao lộ gần nhất với điểm bắt đầu và kết thúc
             let startIntersect = nearestIntersection(markerStart.getPosition());
             let endIntersect = nearestIntersection(markerEnd.getPosition());
+            
             console.log("Bắt đầu", startIntersect);
             console.log("Kết thúc", endIntersect.toString());
+            
+            // Khởi tạo các giá trị ban đầu
             openNodes.add(startIntersect);
             trace[startIntersect.toString()] = markerStart.getPosition();
             trace[markerEnd.getPosition().toString()] = endIntersect;
+            
+            // Khởi tạo khoảng cách ban đầu
             for (let i = 0; i < intersections.length; i++)
             {
                 d[intersections[i].toString()] = Infinity;
             }
             d[startIntersect.toString()] = 0;
+
+            // Thuật toán A* tìm đường đi ngắn nhất
             while(openNodes.size)
             {
                 let bestNode = null;
                 let minimum = Infinity;
+                // Tìm node có f(n) = g(n) + h(n) nhỏ nhất
                 for(let currentNode of openNodes)
                 {
                     if(closeNodes.has(currentNode))
@@ -497,15 +523,16 @@ function approximateDistance(latlng1, latlng2) {
                         bestNode = currentNode;
                     }
                 }
-                //console.log("Nút tốt nhất", bestNode.toString());
+                
+                // Duyệt qua các node kề
                 for(let i = 0; i < adj[bestNode.toString()].length; i++)
                 {
                     let nextNode = adj[bestNode.toString()][i];
-                    //console.log("Nút tiếp theo", nextNode.toString());
                     if(closeNodes.has(nextNode))
                     {
                         continue;
                     }
+                    // Cập nhật khoảng cách nếu tìm thấy đường đi ngắn hơn
                     if(d[nextNode.toString()] > d[bestNode.toString()] + approximateDistance(bestNode, nextNode))
                     {
                         d[nextNode.toString()] = d[bestNode.toString()] + approximateDistance(bestNode, nextNode);
@@ -519,6 +546,8 @@ function approximateDistance(latlng1, latlng2) {
                     break;
                 }
             }
+
+            // Tạo mảng chứa các điểm trên đường đi
             let Route = [];
             Route.push(markerEnd.getPosition());
             let cur = markerEnd.getPosition();
@@ -528,6 +557,8 @@ function approximateDistance(latlng1, latlng2) {
                 Route.push(cur);
             }
             Route.reverse();
+
+            // Tối ưu hóa đường đi bằng cách loại bỏ các điểm thừa
             if(isOnSegment(Route[0],Route[1],Route[2]))
             {
                 Route.splice(1,1);
@@ -537,46 +568,45 @@ function approximateDistance(latlng1, latlng2) {
             {
                 Route.splice(siz - 2, 1);
             }
-            // Calculate the route and update totalDistance and totalTime
+
+            // Tính toán tổng khoảng cách và thời gian
             let calculatedDistance = 0;
             for (let i = 0; i < Route.length - 1; i++) {
                 calculatedDistance += approximateDistance(Route[i], Route[i + 1]);
             }
-            let calculatedTime = (calculatedDistance / (currentSpeed * 1000 / 60)); // Convert speed to m/min
+            let calculatedTime = (calculatedDistance / (currentSpeed * 1000 / 60)); // Chuyển đổi tốc độ sang m/phút
 
-            // Log calculated values
-            console.log("Calculated distance:", calculatedDistance, "Calculated time:", calculatedTime);
+            console.log("Khoảng cách tính được:", calculatedDistance, "Thời gian tính được:", calculatedTime);
 
-            // Assign calculated values to global variables
             totalDistance = calculatedDistance;
             totalTime = calculatedTime;
 
-            // Log global variables to ensure they are updated
-            console.log("Global totalDistance:", totalDistance, "Global totalTime:", totalTime);
+            console.log("Tổng khoảng cách:", totalDistance, "Tổng thời gian:", totalTime);
 
-            // Directly update the panel
+            // Cập nhật thông tin hiển thị
             var simpleInfoPanel = document.getElementById('simpleInfoPanel');
             if (simpleInfoPanel) {
-              simpleInfoPanel.textContent = `Total distance: ${totalDistance.toFixed(2)}m, Total time: ${totalTime.toFixed(1)} minutes`;
-              console.log("Simple panel updated successfully");
+              simpleInfoPanel.textContent = `Khoảng cách tổng: ${totalDistance.toFixed(2)}m, Thời gian tổng: ${totalTime.toFixed(1)} phút`;
+              console.log("Cập nhật bảng thông tin thành công");
             } else {
-              console.error("Simple info panel element not found");
+              console.error("Không tìm thấy bảng thông tin");
             }
 
+            // Vẽ đường đi trên bản đồ
             let pathCoordinates = Route.map(position => {
-    return { lat: position.lat(), lng: position.lng() };
+                return { lat: position.lat(), lng: position.lng() };
             });
             path.setPath(pathCoordinates);
- 
         }
-        //console.log("Clicked inside the polygon at: ", clickedLocation.toString());
     }
     });
+
+    // Tạo cửa sổ thông tin
     let infoWindow = new google.maps.InfoWindow();
 
+    // Xử lý sự kiện di chuột qua đường đi
     path.addListener('mouseover', function(event) {
-        infoWindow.setContent(`Total distance: ${totalDistance.toFixed(2)}m, Total time: ${totalTime.toFixed(1)} minutes`);
-
+        infoWindow.setContent(`Khoảng cách tổng: ${totalDistance.toFixed(2)}m, Thời gian tổng: ${totalTime.toFixed(1)} phút`);
         infoWindow.setPosition(event.latLng);
         infoWindow.open(map);
     });
@@ -584,6 +614,8 @@ function approximateDistance(latlng1, latlng2) {
     path.addListener('mouseout', function() {
         infoWindow.close();
     });
+
+    // Xử lý sự kiện click ngoài khu vực Hàng Bồ
     map.addListener('click', function(mapsMouseEvent)
     {
         flag = 0;
@@ -593,8 +625,8 @@ function approximateDistance(latlng1, latlng2) {
             markerStart.setPosition(null);
             markerEnd.setPosition(null);
             path.setPath([]);
-            totalDistance = 0; // Reset totalDistance only when necessary
-            totalTime = 0; // Reset totalTime only when necessary
+            totalDistance = 0;
+            totalTime = 0;
             updateInfoPanel();
         }
     });
@@ -606,6 +638,5 @@ function approximateDistance(latlng1, latlng2) {
 </html>
 
 
-
-
                            
+
